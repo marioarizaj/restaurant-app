@@ -19,7 +19,6 @@ type User struct {
 //Create User
 
 func CreateUser(fn, ln, em, un, ps, ps2 string, access int,) (*[]string, error, string) {
-
 	validateString(fn)
 	validateString(ln)
 	validateUsername(un)

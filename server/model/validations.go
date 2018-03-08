@@ -1,8 +1,6 @@
 package Model
 
 import (
-	"database/sql"
-	"fmt"
 	"regexp"
 	"github.com/marioarizaj/restaurant-app/config"
 )
