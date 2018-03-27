@@ -5,6 +5,8 @@ import (
 	_ "github.com/lib/pq"
 	"github.com/satori/go.uuid"
 	"github.com/marioarizaj/restaurant-app/config"
+	"errors"
+	"net/http"
 )
 
 type User struct {
@@ -25,9 +27,9 @@ func CreateUser(fn, ln, em, un, ps, ps2 string, access int,) (*[]string, error, 
 	validateEmail(em)
 	validatePassword(ps, ps2)
 
-	if len(errors) > 0 {
-		fmt.Println(errors)
-		return &errors, nil, ""
+	if len(errorsArray) > 0 {
+		fmt.Println(errorsArray)
+		return &errorsArray, nil, ""
 	}
 
 	err, id := create(fn, ln, un, em, ps, access)
@@ -41,6 +43,25 @@ func CreateUser(fn, ln, em, un, ps, ps2 string, access int,) (*[]string, error, 
 	return nil, err, uid
 
 }
+
+func CheckLogin(email , password string) (error,string,int) {
+	var id int
+	statement,err := config.DbCon.Prepare("SELECT id FROM users WHERE email = $1 AND password = $2")
+
+	if err!=nil {
+		return errors.New("Internal Error Occurred"), "",500
+	}
+
+		err = statement.QueryRow(email,password).Scan(&id)
+
+	if err!=nil {
+		return errors.New("Invalid username or password") , "",406
+	}
+
+	err,uid := generateSession(id)
+	return nil,uid,200
+}
+
 
 func generateSession(id int) (error, string) {
 	uuidd, err := uuid.NewV4()
@@ -63,11 +84,60 @@ func generateSession(id int) (error, string) {
 
 }
 
+func CheckToken(session string) (error,bool) {
+	query , err := config.DbCon.Prepare("SELECT * FROM sessions WHERE uuid = $1")
+	if err != nil {
+		return err,false
+	}
+
+	res,err := query.Exec(session)
+	if err != nil {
+		return err,false
+	}
+
+	rows,err := res.RowsAffected()
+	if err != nil {
+		return err,false
+	}
+	if rows != 1 {
+		return errors.New("Session expired"),false
+	}
+
+	return nil, true
+
+}
+
+func IsAdmin(session string) (error,bool,int) {
+	var id int
+	var access int
+	query , err := config.DbCon.Prepare("SELECT id FROM sessions WHERE uuid = $1")
+	if err != nil {
+		return err,false,http.StatusInternalServerError
+	}
+
+	err = query.QueryRow(session).Scan(&id)
+
+	if err != nil {
+		return err,false,http.StatusInternalServerError
+	}
+
+
+
+	_ = config.DbCon.QueryRow("SELECT type FROM users WHERE id = $1",id).Scan(&access)
+	if access != 1 {
+		return errors.New("unauthorized"),false,http.StatusUnauthorized
+	}
+
+
+	return nil,true,http.StatusOK
+
+}
+
 
 
 func create(fn, ln, un, em, ps string, access int) (error, int) {
 	var id int
-	err := config.DbCon.QueryRow("INSERT INTO users(first_name,last_name,email,username,password,age) VALUES ($1,$2,$3,$4,$5,$6) RETURNING Id", fn, ln, em, un, ps, access).Scan(&id)
+	err := config.DbCon.QueryRow("INSERT INTO users(first_name,last_name,email,username,password,type) VALUES ($1,$2,$3,$4,$5,$6) RETURNING Id", fn, ln, em, un, ps, access).Scan(&id)
 	if err != nil {
 		return err, id
 	}

@@ -5,13 +5,13 @@ import (
 	"github.com/marioarizaj/restaurant-app/config"
 )
 
-var errors []string
+var errorsArray []string
 
 func validateString(str string) {
 	r := regexp.MustCompile("^[A-Z]{1}[a-z]{2,20}$")
 	valid := r.MatchString(str)
 	if !valid {
-		errors = append(errors, "String in not valid")
+		errorsArray = append(errorsArray, "String in not valid")
 	}
 }
 
@@ -21,21 +21,21 @@ func validateUsername(str string) {
 	emailExists, err := checkIfUnlExists(str)
 
 	if err != nil {
-		errors = append(errors, "There has benn an error")
+		errorsArray = append(errorsArray, "There has benn an error")
 	}
 
 	if emailExists {
-		errors = append(errors, "Username is taken")
+		errorsArray = append(errorsArray, "Username is taken")
 	}
 
 	if !valid {
-		errors = append(errors, "Username in not valid")
+		errorsArray = append(errorsArray, "Username in not valid")
 	}
 }
 
 func validatePassword(pass, pass2 string) {
 	if pass != pass2 {
-		errors = append(errors, "Passwords do not match")
+		errorsArray = append(errorsArray, "Passwords do not match")
 	}
 
 	r := regexp.MustCompile("^[a-z0-9]{8,20}$")
@@ -43,7 +43,7 @@ func validatePassword(pass, pass2 string) {
 	valid := r.MatchString(pass)
 
 	if !valid {
-		errors = append(errors, "Password in not valid")
+		errorsArray = append(errorsArray, "Password in not valid")
 	}
 
 }
@@ -52,18 +52,18 @@ func validateEmail(email string) {
 	emailExists, err := checkIfEmailExists(email)
 
 	if err != nil {
-		errors = append(errors, "There has benn an error")
+		errorsArray = append(errorsArray, "There has benn an error")
 	}
 
 	if emailExists {
-		errors = append(errors, "Email is taken")
+		errorsArray = append(errorsArray, "Email is taken")
 	}
 
 	r := regexp.MustCompile("^[a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*$")
 	valid := r.MatchString(email)
 
 	if !valid {
-		errors = append(errors, "Email is not valid")
+		errorsArray = append(errorsArray, "Email is not valid")
 	}
 
 }

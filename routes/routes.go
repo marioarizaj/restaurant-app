@@ -11,6 +11,12 @@ func InitializeRoutes(router *gin.Engine){
 	user := router.Group("/user")
 	{
 		user.POST("/register", middlewares.IsGuest(), controller.RegisterUser)
-		user.POST("/login", middlewares.IsGuest(),controller.checkLogin)
+		user.POST("/login", middlewares.IsGuest(),controller.CheckLogin)
+
+		adminPrivileges := user.Group("/admin",middlewares.IsLoggedIn(), middlewares.IsAdmin())
+		{
+			adminPrivileges.POST("/addSupplier",controller.addSupplier())
+		}
+
 	}
 }
