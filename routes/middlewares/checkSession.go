@@ -45,6 +45,33 @@ func IsLoggedIn() gin.HandlerFunc {
 
 }
 
+func SessionValid() gin.HandlerFunc {
+	return func(c *gin.Context) {
+	sessionId := c.GetHeader("authorization")
+
+	if sessionId == "" {
+		c.AbortWithError(http.StatusUnauthorized, errors.New("You are not logged in"))
+		return
+	}
+
+	err , isValid := Model.CheckSession(sessionId)
+	if err != nil {
+		c.AbortWithStatusJSON(http.StatusUnauthorized , gin.H{
+			"error":err,
+		})
+	}
+	if !isValid {
+		c.AbortWithStatusJSON(http.StatusUnauthorized , gin.H{
+			"error":"session has expired",
+		})
+	}
+	c.Next()
+	return
+
+}
+
+}
+
 func IsAdmin() gin.HandlerFunc {
 	return func(c *gin.Context){
 		sessionId := c.GetHeader("authorization")

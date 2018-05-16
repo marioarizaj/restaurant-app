@@ -11,7 +11,7 @@ func validateString(str string) {
 	r := regexp.MustCompile("^[A-Z]{1}[a-z]{2,20}$")
 	valid := r.MatchString(str)
 	if !valid {
-		errorsArray = append(errorsArray, "String in not valid")
+		errorsArray = append(errorsArray, "String is not valid")
 	}
 }
 

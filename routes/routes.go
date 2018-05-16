@@ -8,15 +8,34 @@ import (
 
 
 func InitializeRoutes(router *gin.Engine){
-	user := router.Group("/user")
+	router.GET("/restaurant",middlewares.IsGuest(),controller.CheckRestaurant)
+	router.POST("/createRestaurant",middlewares.RestaurantExists(),controller.CreateRestaurant)
+	router.POST("/firstAdmin",middlewares.IsGuest(),middlewares.AdminExists(),controller.RegisterUser)
+	router.POST("/login", middlewares.IsGuest(),controller.CheckLogin)
+	user := router.Group("/user",middlewares.IsLoggedIn(),middlewares.SessionValid())
 	{
-		user.POST("/register", middlewares.IsGuest(), controller.RegisterUser)
-		user.POST("/login", middlewares.IsGuest(),controller.CheckLogin)
-
-		adminPrivileges := user.Group("/admin",middlewares.IsLoggedIn(), middlewares.IsAdmin())
+		user.GET("/getCategories",controller.GetCategories)
+		user.GET("/currentUser",controller.CurrentUser)
+		user.GET("/clockin",middlewares.IsCloackedOut(),controller.ClockIn)
+		cloackedIn := router.Group("/clockedin",middlewares.IsCloackedIn())
 		{
-			adminPrivileges.POST("/addSupplier",controller.addSupplier())
+			cloackedIn.GET("/clockout",controller.ClockOut)
+			cloackedIn.GET("/getInventory",controller.GetInventoryServer)
+			cloackedIn.POST("/createOrder",controller.CreateOrder)
 		}
-
+		adminPrivileges := user.Group("/admin", middlewares.IsAdmin())
+		{
+			adminPrivileges.POST("/register", controller.RegisterUser)
+			adminPrivileges.POST("/editInfo",controller.EditInfo)
+			adminPrivileges.POST("/addSupplier",controller.AddSupplier)
+			adminPrivileges.GET("/getUsers",controller.GetUsers)
+			adminPrivileges.POST("/addCategory",controller.AddCategory)
+			adminPrivileges.POST("/addProducts",controller.AddProduct)
+			adminPrivileges.GET("/getProducts",controller.GetProducts)
+			adminPrivileges.POST("/addInventory",controller.AddInventory)
+			adminPrivileges.GET("/getInventory",controller.GetInventoryAdmin)
+			adminPrivileges.GET("/getSuppliers",controller.GetSupplier)
+			adminPrivileges.GET("/calculateWage",controller.CalculateWage)
+		}
 	}
 }
