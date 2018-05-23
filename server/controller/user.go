@@ -250,11 +250,12 @@ func ClockIn(c *gin.Context) {
 
 func CalculateWage(c *gin.Context) {
 	id := c.Query("id")
+	fmt.Println("id is :",id)
 	intid,err := strconv.Atoi(id)
 
 	if err != nil {
 		c.JSON(http.StatusNotAcceptable , gin.H{
-			"message": "Id should be integer",
+			"message": err.Error(),
 		})
 		return
 	}
@@ -263,7 +264,7 @@ func CalculateWage(c *gin.Context) {
 
 	if err != nil {
 		c.JSON(http.StatusNotAcceptable , gin.H{
-			"message": "Id should be integer",
+			"message": err.Error(),
 		})
 		return
 	}
@@ -272,6 +273,34 @@ func CalculateWage(c *gin.Context) {
 		"To be paid": pay,
 	})
 
+}
+
+
+func PayEmployee(c *gin.Context){
+	sid := c.Query("id")
+
+	id, err := strconv.Atoi(sid)
+
+	if err != nil {
+		c.JSON(http.StatusNotAcceptable, gin.H{
+			"message":"Id should be integer",
+		})
+		return
+	}
+
+	err,payid,payed := Model.PayEmployee(id)
+
+	if err != nil {
+		c.JSON(http.StatusNotAcceptable, gin.H{
+			"message":err.Error(),
+		})
+		return
+	}
+
+	c.JSON(http.StatusOK,gin.H{
+		"payment id": payid,
+		"payed": payed,
+	})
 }
 
 func GetInventoryServer(c *gin.Context) {
@@ -375,7 +404,7 @@ func AddProduct(c *gin.Context) {
 	err := c.MustBindWith(&product,binding.JSON)
 
 	if err != nil {
-		c.JSON(http.StatusBadGateway,gin.H{
+		c.JSON(http.StatusNotAcceptable,gin.H{
 			"message":err.Error(),
 		})
 		return

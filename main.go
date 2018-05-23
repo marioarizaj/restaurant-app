@@ -12,7 +12,7 @@ func main() {
 	var err error
 	router := gin.Default()
 	router.Use(middlewares.CORSMiddleware())
-	config.DbCon, err = config.NewDB("host=localhost port=5432  user=mario password=nil  dbname=restaurant sslmode=disable")
+	config.DbCon, err = config.NewDB("host=localhost port=5432  user=mario password=mario123  dbname=restaurant sslmode=disable")
 
 	if err != nil {
 		fmt.Println("An error ocurred")
@@ -26,3 +26,4 @@ func main() {
 	router.Run(":8080")
 
 }
+

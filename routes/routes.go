@@ -36,6 +36,7 @@ func InitializeRoutes(router *gin.Engine){
 			adminPrivileges.GET("/getInventory",controller.GetInventoryAdmin)
 			adminPrivileges.GET("/getSuppliers",controller.GetSupplier)
 			adminPrivileges.GET("/calculateWage",controller.CalculateWage)
+			adminPrivileges.GET("/payEmployee",controller.PayEmployee)
 		}
 	}
 }

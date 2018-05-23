@@ -65,34 +65,65 @@ func CalculateWage (id int) (error,float64) {
 	return nil,pay
 }
 
+
+func PayEmployee(id int) (error,int,float64) {
+	err,wage := CalculateWage(id)
+	var pid int
+	if err != nil {
+		return err,0,0
+	}
+
+	stm := config.DbCon.QueryRow("INSERT INTO payments(employeeid,payment,date) VALUES ($1,$2,$3)",id,wage,time.Now())
+
+	err = stm.Scan(&pid)
+
+	if err != nil {
+		return err,0,0
+	}
+
+	return nil,pid,wage
+}
+
 func calculateHours(id int) (error,float64) {
 	var clockins time.Time
 	var clockouts time.Time
 	var duration float64
 
-	stm,err := config.DbCon.Query("SELECT cloak_in,cloak_out FROM hoursworked WHERE userid = $1 ",id)
+	var lastPay time.Time
+
+	stm := config.DbCon.QueryRow("SELECT MAX(date) FROM payments WHERE employeeid = $1 ",id)
+
+	err := stm.Scan(&lastPay)
 
 	if err != nil {
 		return err,0
 	}
 
-	defer stm.Close()
 
-	for stm.Next() {
-		err := stm.Scan(&clockins,&clockouts)
+	row,err := config.DbCon.Query("SELECT cloak_in,cloak_out FROM hoursworked WHERE userid = $1 AND clock_in > $2 AND clock_out > $2 ",id,lastPay)
+
+	if err != nil {
+		return err,0
+	}
+
+	defer row.Close()
+
+	for row.Next() {
+		err := row.Scan(&clockins,&clockouts)
 		if err != nil {
 			return err,0
 		}
 		tempdur := clockouts.Sub(clockins)
 		duration += tempdur.Hours()
 
-		if err = stm.Err(); err!= nil {
+		if err = row.Err(); err!= nil {
 			return err,0
 		}
 	}
 
 	return nil,duration
 }
+
 
 func CreateUser(user User) (error,string) {
 	/*validateString(user.FirstName)
@@ -118,7 +149,7 @@ func CheckLogin(username , password string) (error,string,User) {
 	var user User
 	statement := config.DbCon.QueryRow("SELECT id,firstname,lastname,typeid,birthdate,hiredate,address,phone,notes,username,hourlywage FROM employees WHERE username = $1 AND password = $2",username,password)
 
-	err := statement.Scan(&user.Id,&user.FirstName,&user.LastName,&user.Type,&user.Birthday,&user.Hiredate,&user.Address,&user.Phone,&user.Notes,&user.Username,user.HourlyWage)
+	err := statement.Scan(&user.Id,&user.FirstName,&user.LastName,&user.Type,&user.Birthday,&user.Hiredate,&user.Address,&user.Phone,&user.Notes,&user.Username,&user.HourlyWage)
 
 	if err == sql.ErrNoRows {
 		return errors.New("invalid username or password"),"",User{}
