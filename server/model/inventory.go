@@ -64,11 +64,11 @@ func GetInventoryAdmin() (error,[]Inventory) {
 	var inventory Inventory
 	var inventories []Inventory
 
-	rows,err := config.DbCon.Query("SELECT products.id,products.name,supplier.companyname,categories.name,buyingprice,sellingprice,inventory.quantity " +
-																			"FROM products" +
-																			" LEFT JOIN inventory ON (products.id = inventory.productid) " +
-																			" LEFT JOIN categories ON (categories.id=products.categoryid)" +
-																			" LEFT JOIN supplier ON (supplier.id = products.supplierid)")
+	rows,err := config.DbCon.Query("SELECT products.id,products.name,supplier.companyname,categories.name,products.buyingprice,products.sellingprice,inventory.quantity " +
+																			"FROM inventory" +
+																			" LEFT JOIN products ON products.id = inventory.productid" +
+																			" LEFT JOIN categories ON categories.id=products.categoryid" +
+																			" LEFT JOIN supplier ON supplier.id = products.supplierid")
 
 	if err != nil {
 		return err,nil

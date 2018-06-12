@@ -110,3 +110,77 @@ func checkPrice(orderdt []OrderDetail) (error,float32) {
 
 	return nil,totprice
 }
+
+func GetRevenue(date time.Time) (error,float64) {
+	var tempPrice float64
+	var totprice float64
+	res,err := config.DbCon.Query("SELECT totalprice FROM orders WHERE time > $1",date)
+	if err != nil {
+		return err,0
+	}
+	defer res.Close()
+	for res.Next() {
+		err = res.Scan(&tempPrice)
+		if err != nil {
+			return err,0
+		}
+		totprice += tempPrice
+		if res.Err() != nil {
+			return res.Err(),0
+		}
+	}
+	return nil,totprice
+}
+
+func ShiftOrders(id int) (error,[]Order) {
+	var order Order
+	var orders []Order
+
+	row,err := config.DbCon.Query("SELECT orders.time, orders.tableid,employees.id,order.id, orders.totalprice " +
+																			"	FROM orders " +
+																			"LEFT JOIN employees ON employee.id = orders.employeeid " +
+																			"LEFT JOIN hoursworked ON employee.id = hoursworked.userid WHERE id = $1 AND hoursworked.cloak_out IS NULL ",id)
+
+	if err != nil {
+		return err,nil
+	}
+
+	defer row.Close()
+
+	for row.Next() {
+		err := row.Scan(&order.Date, &order.TableId,&order.EmployeeId,&order.Id, &order.TotalPrice)
+
+		if err != nil {
+			return err,nil
+		}
+
+		orders = append(orders,order)
+	}
+
+	return nil,orders
+}
+
+func AllOrders() (error,[]Order) {
+	var order Order
+	var orders []Order
+
+	row,err := config.DbCon.Query("SELECT orders.time, orders.tableid, employees.id,orders.id, orders.totalprice FROM orders LEFT JOIN employees ON employees.id = orders.employeeid")
+
+	if err != nil {
+		return err,nil
+	}
+
+	defer row.Close()
+
+	for row.Next() {
+		err := row.Scan(&order.Date, &order.TableId,&order.EmployeeId,&order.Id, &order.TotalPrice)
+
+		if err != nil {
+			return err,nil
+		}
+
+		orders = append(orders,order)
+	}
+
+	return nil,orders
+}

@@ -19,7 +19,7 @@ type User struct {
 	Password  string `json:"password" binding:"required"`
 	Type    int `json:"type"`
 	Birthday string `json:"birthdate" binding:"required"`
-	Hiredate string `json:"hiredate" binding:"required"`
+	Hiredate string `json:"hiredate"`
 	Address string `json:"address" binding:"required"`
 	Phone string `json:"phone" binding:"required"`
 	Notes string `json:"notes"`
@@ -66,14 +66,15 @@ func CalculateWage (id int) (error,float64) {
 }
 
 
-func PayEmployee(id int) (error,int,float64) {
+
+func PayEmployee(id int,bonus float64) (error,int,float64) {
 	err,wage := CalculateWage(id)
 	var pid int
 	if err != nil {
 		return err,0,0
 	}
 
-	stm := config.DbCon.QueryRow("INSERT INTO payments(employeeid,payment,date) VALUES ($1,$2,$3)",id,wage,time.Now())
+	stm := config.DbCon.QueryRow("INSERT INTO payments(employeeid,payment,bonus,date) VALUES ($1,$2,$3)",id,wage,bonus,time.Now())
 
 	err = stm.Scan(&pid)
 
@@ -81,7 +82,7 @@ func PayEmployee(id int) (error,int,float64) {
 		return err,0,0
 	}
 
-	return nil,pid,wage
+	return nil,pid,wage+bonus
 }
 
 func calculateHours(id int) (error,float64) {
@@ -89,18 +90,26 @@ func calculateHours(id int) (error,float64) {
 	var clockouts time.Time
 	var duration float64
 
-	var lastPay time.Time
+	var lastPay sql.NullString
 
-	stm := config.DbCon.QueryRow("SELECT MAX(date) FROM payments WHERE employeeid = $1 ",id)
+	stm,err := config.DbCon.Query("SELECT MAX(date) FROM payments WHERE employeeid = $1 ",id)
 
-	err := stm.Scan(&lastPay)
+	if err != nil {
+		return err,0
+	}
+	for stm.Next(){
+		err = stm.Scan(&lastPay)
+		if err == sql.ErrNoRows {
+			return nil,0
+		}
+	}
 
 	if err != nil {
 		return err,0
 	}
 
 
-	row,err := config.DbCon.Query("SELECT cloak_in,cloak_out FROM hoursworked WHERE userid = $1 AND clock_in > $2 AND clock_out > $2 ",id,lastPay)
+	row,err := config.DbCon.Query("SELECT cloak_in,cloak_out FROM hoursworked WHERE userid = $1 AND cloak_in > $2 AND cloak_out > $2 ",id,lastPay)
 
 	if err != nil {
 		return err,0
@@ -124,12 +133,56 @@ func calculateHours(id int) (error,float64) {
 	return nil,duration
 }
 
+type tobepaid struct {
+	Id int `json:"id"`
+	Name string `json:"name"`
+	Surname string `json:"surname"`
+	HoursWorked float64 `json:"hoursWorked"`
+	HourlyWage float64 `json:"hourlyWage"`
+	AccWage float64 `json:"accWage"`
+}
+
+
+func ToBePaid() (error,[]tobepaid){
+	var toBePaid tobepaid
+	var toBePaidS []tobepaid
+
+	row,err := config.DbCon.Query("SELECT id,firstname,lastname,hourlywage FROM employees WHERE typeid=2")
+
+	if err != nil {
+		return err,nil
+	}
+
+	defer row.Close()
+
+	for row.Next() {
+		err := row.Scan(&toBePaid.Id,&toBePaid.Name,&toBePaid.Surname,&toBePaid.HourlyWage)
+
+		if err != nil {
+			return err,nil
+		}
+
+		err,toBePaid.HoursWorked = calculateHours(toBePaid.Id)
+
+		if err != nil {
+			return err,nil
+		}
+
+		toBePaid.AccWage = toBePaid.HourlyWage*toBePaid.HoursWorked
+
+
+		toBePaidS = append(toBePaidS,toBePaid)
+	}
+
+	fmt.Println(toBePaidS[0])
+
+	return nil,toBePaidS
+}
 
 func CreateUser(user User) (error,string) {
-	/*validateString(user.FirstName)
+	err := validateString(user.FirstName)
 	validateString(user.LastName)
 	validateUsername(user.Username)
-	validatePassword(user.Password,user.Password)*/
 
 	err, id := create(user.FirstName, user.LastName, user.FirstName+"."+user.LastName, user.Password, user.Birthday, user.Hiredate, user.Address, user.Phone, user.Notes, user.Type,user.HourlyWage)
 
@@ -342,7 +395,7 @@ func create(fn, ln, un, ps, bday, hday,adr,phone,notes string, Type int, wage fl
 
 func CurrentUser(uuid string) (error,User){
 	var user User
-	row := config.DbCon.QueryRow("SELECT employees.id,employees.firstname,employees.lastname,employees.typeid,employees.birthdate,employees.hiredate,employees.address,employees.phone,employees.notes,employees.username,employees.hourlywage FROM employees,session WHERE session.uuid = $1 AND employees.id = session.userid",uuid)
+	row := config.DbCon.QueryRow("SELECT employees.id,employees.firstname,employees.lastname,employees.typeid,employees.birthdate,employees.hiredate,employees.address,employees.phone,employees.notes,employees.username FROM employees,session WHERE session.uuid = $1 AND employees.id = session.userid",uuid)
 	err := row.Scan(&user.Id,&user.FirstName,&user.LastName,&user.Type,&user.Birthday,&user.Hiredate,&user.Address,&user.Phone,&user.Notes,&user.Username)
 	if err != nil {
 		if err == sql.ErrNoRows {
@@ -352,6 +405,40 @@ func CurrentUser(uuid string) (error,User){
 	}
 
 	return nil,user
+}
+
+type ClockInsAndOuts struct {
+	UserId int `json:"id"`
+	UserName string `json:"name"`
+	UserSurname string `json:"surname"`
+	ClockIn time.Time `json:"clockIn"`
+	ClockOut time.Time `json:"clockOut"`
+	HourlyWage float64 `json:"hourlyWage"`
+	HoursWorked float64 `json:"hoursWorked"`
+	AccumulatedWage float64 `json:"accWage"`
+}
+func ClockInAndOut() (error,[]ClockInsAndOuts) {
+	var clock ClockInsAndOuts
+	var clocks []ClockInsAndOuts
+
+	row,err := config.DbCon.Query("SELECT employees.id,employees.firstname, employees.lastname, hoursworked.cloak_in,hoursworked.cloak_out, employees.hourlywage FROM employees LEFT JOIN hoursworked ON employees.id = hoursworked.userid WHERE cloak_out IS NOT NULL")
+	if err != nil {
+		return err,nil
+	}
+	defer row.Close()
+	for row.Next() {
+		err := row.Scan(&clock.UserId,&clock.UserName,&clock.UserSurname,&clock.ClockIn,&clock.ClockOut,&clock.HourlyWage)
+		if err != nil {
+			return err,nil
+		}
+
+		clock.HoursWorked = clock.ClockOut.Sub(clock.ClockOut).Hours()
+		clock.AccumulatedWage = clock.HoursWorked * clock.HourlyWage
+
+		clocks = append(clocks,clock)
+	}
+
+	return nil, clocks
 }
 
 func GetUsers() (error,[]User) {
@@ -399,6 +486,16 @@ func EditUser(user User) (error,bool) {
 
 }
 
+func DeleteUser(id int) (error,bool) {
+	_,err := config.DbCon.Query("DELETE FROM employees WHERE id = $1",id)
+
+	if err != nil {
+		return err,false
+	}
+
+	return nil,true
+}
+
 func ClockIn(id int) (error,bool) {
 	date := time.Now().UTC()
 	_,err := config.DbCon.Query("INSERT INTO hoursworked(userid,cloak_in) VALUES ($1,$2)",id,date)
@@ -432,6 +529,8 @@ func IsClockedIn(id int) (error,bool) {
 	return nil,true
 
 }
+
+
 
 func ClockOut (id int)(error,bool) {
 	date := time.Now().UTC()

@@ -12,7 +12,7 @@ func CheckRestaurant(c *gin.Context) {
 	err,restaurant := Model.CheckIfExists()
 	if err != nil {
 		if err.Error() == "no restaurant" {
-			c.JSON(http.StatusNoContent , gin.H{
+			c.JSON(http.StatusOK , gin.H{
 				"restaurant": restaurant,
 			})
 			return

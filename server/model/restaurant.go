@@ -45,7 +45,7 @@ func CreateRestaurant(res Restaurant) (error,bool) {
 	phone := res.Phone
 
 
-	_,err := config.DbCon.Query("INSERT INTO restorant(qkr,address,tablenr,phone,name) values ($1,$2,$3,$4,$5)",qkr,address,tableNr,phone,res.Phone)
+	_,err := config.DbCon.Query("INSERT INTO restorant(qkr,address,tablenr,phone,name) values ($1,$2,$3,$4,$5)",qkr,address,tableNr,phone,res.Name)
 
 	if err != nil {
 		return errors.New("database error"),false

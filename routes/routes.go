@@ -12,8 +12,10 @@ func InitializeRoutes(router *gin.Engine){
 	router.POST("/createRestaurant",middlewares.RestaurantExists(),controller.CreateRestaurant)
 	router.POST("/firstAdmin",middlewares.IsGuest(),middlewares.AdminExists(),controller.RegisterUser)
 	router.POST("/login", middlewares.IsGuest(),controller.CheckLogin)
+	router.GET("/firstAdminExists",middlewares.IsGuest(),controller.FirtsAdminExists)
 	user := router.Group("/user",middlewares.IsLoggedIn(),middlewares.SessionValid())
 	{
+		user.GET("/getOrders",controller.GetOrders)
 		user.GET("/getCategories",controller.GetCategories)
 		user.GET("/currentUser",controller.CurrentUser)
 		user.GET("/clockin",middlewares.IsCloackedOut(),controller.ClockIn)
@@ -25,6 +27,11 @@ func InitializeRoutes(router *gin.Engine){
 		}
 		adminPrivileges := user.Group("/admin", middlewares.IsAdmin())
 		{
+			adminPrivileges.GET("/allCashFlows",controller.AllCashFlows)
+			adminPrivileges.GET("/toBePaid", controller.ToBePaidEmployees)
+			adminPrivileges.GET("/currentCashFlow",controller.GetCurrentCashFlow)
+			adminPrivileges.POST("/resetCashFlow",controller.RegisterCashFlow)
+			adminPrivileges.GET("/getPayments",controller.GetPayments)
 			adminPrivileges.POST("/register", controller.RegisterUser)
 			adminPrivileges.POST("/editInfo",controller.EditInfo)
 			adminPrivileges.POST("/addSupplier",controller.AddSupplier)
@@ -37,6 +44,8 @@ func InitializeRoutes(router *gin.Engine){
 			adminPrivileges.GET("/getSuppliers",controller.GetSupplier)
 			adminPrivileges.GET("/calculateWage",controller.CalculateWage)
 			adminPrivileges.GET("/payEmployee",controller.PayEmployee)
+			adminPrivileges.GET("/timeClock",controller.GetCloacks)
+			adminPrivileges.POST("deleteUser",controller.DeleteUser)
 		}
 	}
 }
