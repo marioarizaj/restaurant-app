@@ -163,6 +163,7 @@ func CheckLogin(c *gin.Context) {
 	var login Model.LoginCmd
 	err := c.MustBindWith(&login,binding.JSON)
 	if err != nil {
+		fmt.Println(err)
 		c.JSON(500, gin.H{
 			"message": err.Error(),
 		})
@@ -172,6 +173,7 @@ func CheckLogin(c *gin.Context) {
 	err, uid , user := Model.CheckLogin(login.Username,login.Password)
 
 	if err != nil {
+		fmt.Println(err)
 		c.JSON(500, gin.H{
 			"message": err.Error(),
 		})
@@ -185,6 +187,31 @@ func CheckLogin(c *gin.Context) {
 	})
 
 }
+
+func IsClockedIn(c *gin.Context) {
+	uuid := c.GetHeader("authorization")
+	err , user := Model.CurrentUser(uuid)
+
+	if err != nil {
+		fmt.Println(err)
+		c.JSON(500, gin.H{
+			"message": err.Error(),
+		})
+		return
+	}
+
+	err,isClock := Model.IsClockedIn(user.Id)
+	if err != nil {
+		fmt.Println(err)
+		c.JSON(500, gin.H{
+			"message": err.Error(),
+		})
+		return
+	}
+
+	c.JSON(200,isClock)
+}
+
 
 func EditInfo(c *gin.Context) {
 	var userToEdit Model.User
@@ -255,6 +282,7 @@ func AddCategory(c *gin.Context) {
 }
 
 func ClockIn(c *gin.Context) {
+	fmt.Println("here")
 	uuid := c.GetHeader("authorization")
 	err , user := Model.CurrentUser(uuid)
 
@@ -336,8 +364,9 @@ func PayEmployee(c *gin.Context){
 	err := c.MustBindWith(&py ,binding.JSON)
 
 	if err != nil {
+		fmt.Println(err)
 		c.JSON(http.StatusNotAcceptable, gin.H{
-			"message":"Id should be integer",
+			"message":err.Error(),
 		})
 		return
 	}
@@ -672,7 +701,8 @@ func AllCashFlows(c *gin.Context) {
 	err,allCashFlows := Model.AllCashFlows()
 
 	if err != nil {
-		if err != nil {
+		if err != sql.ErrNoRows {
+			fmt.Println(err.Error())
 			c.JSON(500,gin.H{
 				"message":err.Error(),
 			})
@@ -792,6 +822,7 @@ func CreateOrder(c *gin.Context) {
 	err := c.MustBindWith(&order,binding.JSON)
 
 	if err != nil {
+		fmt.Println(err.Error())
 		c.JSON(http.StatusNotAcceptable,gin.H{
 			"message":err.Error(),
 		})
@@ -801,6 +832,7 @@ func CreateOrder(c *gin.Context) {
 	err,added := Model.CreateOrder(order)
 
 	if err != nil {
+		fmt.Println(err.Error())
 		c.JSON(http.StatusNotAcceptable,gin.H{
 			"message":err.Error(),
 		})

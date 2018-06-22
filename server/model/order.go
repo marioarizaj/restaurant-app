@@ -4,6 +4,7 @@ import (
 	"github.com/marioarizaj/restaurant-app/config"
 	"errors"
 	"time"
+	"fmt"
 )
 
 type OrderDetail struct {
@@ -23,6 +24,7 @@ type Order struct {
 func CreateOrder (order Order) (error,bool) {
 	err,priceCheck := checkPrice(order.OrderDetails)
 	if err != nil {
+		fmt.Println(err.Error()+" error1")
 		return err,false
 	}
 
@@ -136,10 +138,10 @@ func ShiftOrders(id int) (error,[]Order) {
 	var order Order
 	var orders []Order
 
-	row,err := config.DbCon.Query("SELECT orders.time, orders.tableid,employees.id,order.id, orders.totalprice " +
+	row,err := config.DbCon.Query("SELECT orders.time, orders.tableid,employees.id,orders.id, orders.totalprice " +
 																			"	FROM orders " +
-																			"LEFT JOIN employees ON employee.id = orders.employeeid " +
-																			"LEFT JOIN hoursworked ON employee.id = hoursworked.userid WHERE id = $1 AND hoursworked.cloak_out IS NULL ",id)
+																			"LEFT JOIN employees ON employees.id = orders.employeeid " +
+																			"LEFT JOIN hoursworked ON employees.id = hoursworked.userid WHERE employees.id = $1 AND hoursworked.cloak_out IS NULL ",id)
 
 	if err != nil {
 		return err,nil

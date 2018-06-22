@@ -51,7 +51,7 @@ func GetStartDate() (error,time.Time) {
 func AllCashFlows() (error, []CashFlow) {
 	var cashflow CashFlow
 	var cashflows []CashFlow
-	row,err := config.DbCon.Query("SELECT id, start_date,end_date,revenue,expenses FROM cashflows WHERE end_date IS NULL")
+	row,err := config.DbCon.Query("SELECT id, start_date,end_date,revenue,expenses FROM cashflows WHERE end_date IS NOT NULL")
 
 	if err != nil {
 		return err,nil

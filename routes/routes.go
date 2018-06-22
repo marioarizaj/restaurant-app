@@ -13,9 +13,12 @@ func InitializeRoutes(router *gin.Engine){
 	router.POST("/firstAdmin",middlewares.IsGuest(),middlewares.AdminExists(),controller.RegisterUser)
 	router.POST("/login", middlewares.IsGuest(),controller.CheckLogin)
 	router.GET("/firstAdminExists",middlewares.IsGuest(),controller.FirtsAdminExists)
+
+
 	user := router.Group("/user",middlewares.IsLoggedIn(),middlewares.SessionValid())
 	{
 		user.GET("/getOrders",controller.GetOrders)
+		user.GET("/isCloackedIn",controller.IsClockedIn)
 		user.GET("/getCategories",controller.GetCategories)
 		user.GET("/currentUser",controller.CurrentUser)
 		user.GET("/clockin",middlewares.IsCloackedOut(),controller.ClockIn)
@@ -43,7 +46,7 @@ func InitializeRoutes(router *gin.Engine){
 			adminPrivileges.GET("/getInventory",controller.GetInventoryAdmin)
 			adminPrivileges.GET("/getSuppliers",controller.GetSupplier)
 			adminPrivileges.GET("/calculateWage",controller.CalculateWage)
-			adminPrivileges.GET("/payEmployee",controller.PayEmployee)
+			adminPrivileges.POST("/payEmployee",controller.PayEmployee)
 			adminPrivileges.GET("/timeClock",controller.GetCloacks)
 			adminPrivileges.POST("deleteUser",controller.DeleteUser)
 		}

@@ -68,17 +68,20 @@ func CalculateWage (id int) (error,float64) {
 
 
 func PayEmployee(id int,bonus float64) (error,int,float64) {
+	fmt.Println("here")
 	err,wage := CalculateWage(id)
 	var pid int
 	if err != nil {
+		fmt.Println(err.Error()+"err1")
 		return err,0,0
 	}
 
-	stm := config.DbCon.QueryRow("INSERT INTO payments(employeeid,payment,bonus,date) VALUES ($1,$2,$3)",id,wage,bonus,time.Now())
+	stm := config.DbCon.QueryRow("INSERT INTO payments(employeeid,payment,bonus,date) VALUES ($1,$2,$3,$4) RETURNING Id",id,wage,bonus,time.Now())
 
 	err = stm.Scan(&pid)
 
 	if err != nil {
+		fmt.Println(err.Error()+"err2")
 		return err,0,0
 	}
 
@@ -168,13 +171,13 @@ func ToBePaid() (error,[]tobepaid){
 			return err,nil
 		}
 
-		toBePaid.AccWage = toBePaid.HourlyWage*toBePaid.HoursWorked
+		if toBePaid.HoursWorked != 0 {
+			toBePaid.AccWage = toBePaid.HourlyWage*toBePaid.HoursWorked
+			toBePaidS = append(toBePaidS,toBePaid)
+		}
 
 
-		toBePaidS = append(toBePaidS,toBePaid)
 	}
-
-	fmt.Println(toBePaidS[0])
 
 	return nil,toBePaidS
 }
@@ -523,7 +526,8 @@ func IsClockedIn(id int) (error,bool) {
 	}
 
 	if nr == 0 || nr > 1 {
-		return errors.New("not clocked in"),false
+		fmt.Println("Not cloacked in")
+		return nil,false
 	}
 
 	return nil,true
